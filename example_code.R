@@ -1,4 +1,5 @@
 library(survival)
+library(cmprsk)
 
 #####################################################################################################################
 
@@ -126,59 +127,48 @@ pdi <- function( tau, scores, x, delt_eps, G_hat, n_l ){
 	return( res )
 }
 
+fine_gray_pdi <- function( dat, tau, n_l ){
+	# compute PDI for competing risks data using Fine-Gray model
+	# tau: the prespcified inspection time
+	# n_l: number of outcome types, including event-free
+	n = nrow(dat)
+	# Compute KM estimation of survival function of censoring time
+	km_fit <- survfit( Surv( x, delt_eps==0 ) ~ 1, type="kaplan-meier", data=dat )
+	Gfunc <- stepfun(km_fit$time, c(1, km_fit$surv))
+	G_hat <- Gfunc( dat$x )
+	# when x > tau, G_hat(x) is replaced by G_hat(tau). They will appear both on the numerator and denominator, thus they will be canceling out. We can simply replace them by 1.
+	G_hat[ which( dat$x > tau ) ] = 1
+
+	# predict prognostic scores for each type out of outcome at time tau
+	zcov = c( "z1", "z2" ) # covariates used in the FG model
+	scores = matrix(1, nrow = n, ncol = n_l)
+	for( l in 1:( n_l - 1 ) ){
+		knots = unique( dat$x[ dat$delt_eps==l ] )
+		tidx = find_id( knots, tau )
+		if( tidx == 0 ){
+			return( rep( 0, n ) )
+		} else{
+			fg <- crr(dat$x, dat$delt_eps, dat[, zcov], failcode = l, cencode = 0)
+			scores[, l] = sapply( 1:n, function(i) predict( fg, dat[i, zcov] )[ tidx, 2 ] )
+		}
+		scores[, n_l] = scores[, n_l] - scores[, l]
+	}
+
+	# Compute PDI
+	out = pdi( tau=tau, scores=scores, x=dat$x, delt_eps=dat$delt_eps, G_hat=G_hat, n_l=n_l )
+	return( out )
+}
+
 ##################################################################################################
 ################################      Example Codes    ###########################################
 ##################################################################################################
 
-dat = read.csv( "example_data.csv", header=TRUE )
-n = nrow(dat); n_l = 3  # we have 3 types of outcome, with 1200 subjects
+dat = read.csv( "C:/Users/Maomao/Box/Ning/Maomao_Ning_Li/PDI_CJS/for_github/example_data.csv", header=TRUE )
+n_l = 3  # we have 3 types of outcome, with 1200 subjects
 tau = 1.4
 
-# Compute KM estimation of survival function of censoring time
-km_fit <- survfit( Surv( x, delt==FALSE ) ~ 1, type="kaplan-meier", data=dat )
-Gfunc <- stepfun(km_fit$time, c(1, km_fit$surv))
-G_hat <- Gfunc( dat$x )
-# when x > tau, G_hat(x) is replaced by G_hat(tau). They will appear both on the numerator and denominator, thus they will be canceling out. We can simply replace them by 1.
-G_hat[ which( dat$x > tau ) ] = 1
-
-# predict prognostic scores for each type out of outcome at time tau
-zcov = c( "z1", "z2" ) # covariates used in the FG model
-scores = matrix(1, nrow = n, ncol = n_l)
-for( l in 1:( n_l - 1 ) ){
-	knots = unique( dat$x[ dat$delt_eps==l ] )
-	tidx = find_id( knots, tau )
-	if( tidx == 0 ){
-		return( rep( 0, n ) )
-	} else{
-		fg <- crr(dat$x, dat$delt_eps, dat[, zcov], failcode = l, cencode = 0)
-		scores[, l] = sapply( 1:n, function(i) predict( fg, dat[i, zcov] )[ tidx, 2 ] )
-	}
-	scores[, n_l] = scores[, n_l] - scores[, l]
-}
-
-# Compute PDI
-PDIs = pdi( tau=tau, scores=scores, x=dat$x, delt_eps=dat$delt_eps, G_hat=G_hat, n_l=n_l )
+PDIs = fine_gray_pdi( dat=dat, tau=tau, n_l=n_l )
 
 # > PDIs
 # [1] 0.6303349 0.5842413 0.5630625
 
-# incorporating incorrect covariate z3
-zcov = c( "z1", "z3" ) # covariates used in the FG model
-scores = matrix(1, nrow = n, ncol = n_l)
-for( l in 1:( n_l - 1 ) ){
-	knots = unique( dat$x[ dat$delt_eps==l ] )
-	tidx = find_id( knots, tau )
-	if( tidx == 0 ){
-		return( rep( 0, n ) )
-	} else{
-		fg <- crr(dat$x, dat$delt_eps, dat[, zcov], failcode = l, cencode = 0)
-		scores[, l] = sapply( 1:n, function(i) predict( fg, dat[i, zcov] )[ tidx, 2 ] )
-	}
-	scores[, n_l] = scores[, n_l] - scores[, l]
-}
-
-# Compute PDI
-PDIs = pdi( tau=tau, scores=scores, x=dat$x, delt_eps=dat$delt_eps, G_hat=G_hat, n_l=n_l )
-
-# > PDIs
-# [1] 0.4966044 0.5914107 0.4068672
