@@ -174,7 +174,7 @@ fine_gray_pdi <- function( dat, tau, n_l, seed, cv_rep, zcov){
 	# n_l: number of outcome categories, including event-free
 	# seed: random seed for cross validation
 	# cv_rep: number of cross validation repetitions
-  # zcov: covariates used in the FG model
+        # zcov: covariates used in the FG model
   
 	set.seed(seed)
 	n = nrow(dat)
