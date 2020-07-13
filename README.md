@@ -5,3 +5,5 @@ Ding, M., Ning, J., and Li, R. (2020+) Evaluation of Competing Risks Prediction 
 (1) example_code: R file contains functions used to implement the proposed method and examples
 
 (2) example_data: example data file
+
+Code developed by Maomao Ding.
