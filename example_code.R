@@ -197,7 +197,7 @@ fine_gray_pdi <- function( dat, tau, n_l, seed, cv_rep, zcov){
 ################################      Example Codes    ###########################################
 ##################################################################################################
 
-dat = read.csv( "C:\\Users\\rli4\\Downloads\\CompetingRisksPDI-master\\example_data.csv", header=TRUE )
+dat = read.csv( "...\\example_data.csv", header=TRUE )
 n_l = 3  # number of outcome categories
 tau = 1.4 # prespecified time for prediction
 
