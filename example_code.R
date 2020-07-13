@@ -99,7 +99,7 @@ concord_ipw <- function( score_l, l, n_l, G_hat, types ){
 }
 
 pdi <- function( tau, scores, x, delt_eps, G_hat, n_l ){
-	# Compute PDI from given prognostic scores for n subjects
+	# Compute PDI from given prognostic scores for n subjects, ties can be handled
 	# tau: the prespcified inspection time
 	# n_l: number of outcome types, including event-free
 	# scores: a n by n_l matrix of prognostic scores
@@ -174,6 +174,8 @@ fine_gray_pdi <- function( dat, tau, n_l, seed, cv_rep ){
 	# compute PDI for competing risks data using Fine-Gray model
 	# tau: the prespcified inspection time
 	# n_l: number of outcome types, including event-free
+	# seed: random seed for cross validation
+	# cv_rep: number of cross validation repetitions
 	set.seed(seed)
 	n = nrow(dat)
 	zcov = c( "z1", "z2" ) # covariates used in the FG model
