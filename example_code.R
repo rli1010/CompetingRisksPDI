@@ -105,7 +105,7 @@ pdi <- function( tau, scores, x, delt_eps, G_hat, n_l ){
 	# scores: a n by n_l matrix of prognostic scores
 	# x: a vector of observation times
 	# delt_eps: a vector of failure types for each subject, with 0 for censored
-	# G_hat: a vector of estimated survival time of censoring time for each subject, when observation time x > tau, replace G_hat by 1 ( KM esitmator ) or G_hat(tau | Z) ( covariate dependent estimator )
+	# G_hat: a vector of estimated survival time of censoring time for each subject, when observation time x > tau, replace G_hat by G_hat(tau) ( KM esitmator ) or G_hat(tau | Z) ( covariate dependent estimator )
 	res = rep(0, n_l);
 	types = list();	ns = rep(1, n_l); denom = 1
 	for( ll in 1:(n_l - 1) ){
@@ -127,48 +127,79 @@ pdi <- function( tau, scores, x, delt_eps, G_hat, n_l ){
 	return( res )
 }
 
-fine_gray_pdi <- function( dat, tau, n_l ){
-	# compute PDI for competing risks data using Fine-Gray model
-	# tau: the prespcified inspection time
-	# n_l: number of outcome types, including event-free
+comp_G_hat <- function(dat, tau){
 	n = nrow(dat)
 	# Compute KM estimation of survival function of censoring time
 	km_fit <- survfit( Surv( x, delt_eps==0 ) ~ 1, type="kaplan-meier", data=dat )
 	Gfunc <- stepfun(km_fit$time, c(1, km_fit$surv))
 	G_hat <- Gfunc( dat$x )
-	# when x > tau, G_hat(x) is replaced by G_hat(tau). They will appear both on the numerator and denominator, thus they will be canceling out. We can simply replace them by 1.
-	G_hat[ which( dat$x > tau ) ] = 1
+	# when x > tau, G_hat(x) is replaced by G_hat(tau). 
+	G_hat[ which( dat$x > tau ) ] = Gfunc( tau )
+	return(G_hat)
+}
 
+comp_scores <- function( mdat, pdat, zcov, tau, n_l ){
 	# predict prognostic scores for each type out of outcome at time tau
+	n = nrow(pdat)
 	zcov = c( "z1", "z2" ) # covariates used in the FG model
 	scores = matrix(1, nrow = n, ncol = n_l)
 	for( l in 1:( n_l - 1 ) ){
-		knots = unique( dat$x[ dat$delt_eps==l ] )
+		knots = unique( mdat$x[ mdat$delt_eps==l ] )
 		tidx = find_id( knots, tau )
 		if( tidx == 0 ){
 			return( rep( 0, n ) )
 		} else{
-			fg <- crr(dat$x, dat$delt_eps, dat[, zcov], failcode = l, cencode = 0)
-			scores[, l] = sapply( 1:n, function(i) predict( fg, dat[i, zcov] )[ tidx, 2 ] )
+			fg <- crr(mdat$x, mdat$delt_eps, mdat[, zcov], failcode = l, cencode = 0)
+			scores[, l] = sapply( 1:n, function(i) predict( fg, pdat[i, zcov] )[ tidx, 2 ] )
 		}
 		scores[, n_l] = scores[, n_l] - scores[, l]
-	}
+	}	
+	return(scores)
+}
+
+comp_pdi <- function(mdat, pdat, zcov, tau, n_l){
+	# Compute KM estimation of survival function of censoring time
+	G_hat = comp_G_hat( dat=pdat, tau=tau )	
+
+	# predict prognostic scores for each type out of outcome at time tau
+	scores = comp_scores( mdat=mdat, pdat=pdat, zcov=zcov, tau=tau, n_l=n_l )
 
 	# Compute PDI
-	out = pdi( tau=tau, scores=scores, x=dat$x, delt_eps=dat$delt_eps, G_hat=G_hat, n_l=n_l )
-	return( out )
+	out = pdi( tau=tau, scores=scores, x=pdat$x, delt_eps=pdat$delt_eps, G_hat=G_hat, n_l=n_l )
+
+	return(out)
+}
+
+fine_gray_pdi <- function( dat, tau, n_l, seed, cv_rep ){
+	# compute PDI for competing risks data using Fine-Gray model
+	# tau: the prespcified inspection time
+	# n_l: number of outcome types, including event-free
+	set.seed(seed)
+	n = nrow(dat)
+	zcov = c( "z1", "z2" ) # covariates used in the FG model
+	pdis = rep(0, n_l)
+
+	# Compute PDI
+	for( i in 1:cv_rep ){
+		tmp = createFolds( 1:n, k=2 )
+		dat1 = dat[ tmp[[1]], ]; dat2 = dat[ tmp[[2]], ]	
+		pdis = pdis + comp_pdi(mdat=dat1, pdat=dat2, zcov=zcov, tau=tau, n_l=n_l)
+		pdis = pdis + comp_pdi(mdat=dat2, pdat=dat1, zcov=zcov, tau=tau, n_l=n_l)
+	}
+	pdis = pdis / ( cv_rep * 2 )
+	return( pdis )
 }
 
 ##################################################################################################
 ################################      Example Codes    ###########################################
 ##################################################################################################
 
-dat = read.csv( "C:/Users/Maomao/Box/Ning/Maomao_Ning_Li/PDI_CJS/for_github/example_data.csv", header=TRUE )
+dat = read.csv( "/example_data.csv", header=TRUE )
 n_l = 3  # we have 3 types of outcome, with 1200 subjects
 tau = 1.4
 
-PDIs = fine_gray_pdi( dat=dat, tau=tau, n_l=n_l )
+PDIs = fine_gray_pdi( dat=dat, tau=tau, n_l=n_l, seed=1, cv_rep=3 )
 
 # > PDIs
-# [1] 0.6303349 0.5842413 0.5630625
+# [1] 0.6294670 0.5824985 0.5620825
 
