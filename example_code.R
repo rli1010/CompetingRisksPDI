@@ -1,5 +1,6 @@
 library(survival)
 library(cmprsk)
+library(caret)
 
 #####################################################################################################################
 
@@ -189,19 +190,22 @@ fine_gray_pdi <- function( dat, tau, n_l, seed, cv_rep ){
 		pdis = pdis + comp_pdi(mdat=dat2, pdat=dat1, zcov=zcov, tau=tau, n_l=n_l)
 	}
 	pdis = pdis / ( cv_rep * 2 )
-	return( pdis )
+	return( list(pdi_specific=pdis, pdi_overall=mean(pdis) ) )
 }
 
 ##################################################################################################
 ################################      Example Codes    ###########################################
 ##################################################################################################
 
-dat = read.csv( "/example_data.csv", header=TRUE )
+dat = read.csv( "example_data.csv", header=TRUE )
 n_l = 3  # we have 3 types of outcome, with 1200 subjects
 tau = 1.4
 
 PDIs = fine_gray_pdi( dat=dat, tau=tau, n_l=n_l, seed=1, cv_rep=3 )
 
 # > PDIs
+# $pdi_specific
 # [1] 0.6294670 0.5824985 0.5620825
 
+# $pdi_overall
+# [1] 0.5913493
