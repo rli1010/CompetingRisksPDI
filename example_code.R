@@ -159,7 +159,7 @@ comp_pdi <- function(mdat, pdat, zcov, tau, n_l){
 	# Compute inverse weights
 	G_hat = comp_G_hat( dat=pdat, tau=tau )	
 
-	# predict prognostic scores for each type out of outcome at time tau
+	# predict prognostic scores for each type of outcome at time tau
 	scores = comp_scores( mdat=mdat, pdat=pdat, zcov=zcov, tau=tau, n_l=n_l )
 
 	# Compute PDI
