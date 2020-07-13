@@ -138,7 +138,7 @@ comp_G_hat <- function(dat, tau){
 }
 
 comp_scores <- function( mdat, pdat, zcov, tau, n_l ){
-	# fit Fine-Gray model on mdat and use the fitted model to generate prediction for pmat
+	# fit Fine-Gray model on mdat and use the fitted model to generate prediction for pdat
 	n = nrow(pdat)
 	scores = matrix(1, nrow = n, ncol = n_l)
 	for( l in 1:( n_l - 1 ) ){
