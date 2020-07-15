@@ -28,7 +28,7 @@ i_to_id <- function( i, ns ){
 }
 
 concord_ipw <- function( score_l, l, n_l, G_hat, types ){
-	# G_hat is modified, so that for x > tau, G_hat is G(tau|Z)
+
 	ns = rep(1, n_l)
 	for( ll in 1:n_l ){
 		tmp = score_l[ types[[ ll ]] ]
