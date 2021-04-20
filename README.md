@@ -6,4 +6,4 @@ Ding, M., Ning, J., and Li, R. (2020+) Evaluation of Competing Risks Prediction 
 
 (2) example_data: example data file
 
-Code developed by Maomao Ding.
+Code developed by Maomao Ding, Jing Ning, and Ruosha Li.
