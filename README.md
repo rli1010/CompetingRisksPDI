@@ -7,3 +7,5 @@ Ding, M., Ning, J., and Li, R. (2020+) Evaluation of Competing Risks Prediction 
 (2) example_data: example data file
 
 Code developed by Maomao Ding, Jing Ning, and Ruosha Li.
+
+The corresponding R package is uploaded at: https://github.com/lilyxj91/CRPDI
